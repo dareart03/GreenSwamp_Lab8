@@ -1,0 +1,246 @@
+﻿@{
+    Layout = null;  // это корневой layout, он не наследует ничего
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Greenswamp</title>
+    <link rel="icon" type="image/svg+xml" href="/green-toad-logo.svg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        swamp: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        #mobile-menu {
+            transition: all 0.3s ease-out;
+            transform-origin: top;
+        }
+
+        #mobile-menu.hidden {
+            opacity: 0;
+            transform: scaleY(0);
+        }
+
+        #mobile-menu.block {
+            opacity: 1;
+            transform: scaleY(1);
+        }
+    </style>
+</head>
+<body class="bg-swamp-50 min-h-screen flex flex-col">
+
+    <!-- Навигация (sticky top) -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a asp-page="/Index" class="flex items-center space-x-2">
+                    <img src="/green-toad-logo.svg" alt="Greenswamp Logo" class="h-8 w-8">
+                    <span class="text-2xl font-bold text-swamp-600">Greenswamp</span>
+                </a>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="/feed" class="text-swamp-600 hover:text-swamp-800 font-medium">Swamp</a>
+                    <a href="/ponds" class="text-swamp-600 hover:text-swamp-800 font-medium">Ponds</a>
+                    @if (User.Identity?.IsAuthenticated == true)
+{
+    <div class="flex items-center space-x-3">
+        <a href="/messages" class="flex items-center gap-1.5 text-swamp-600 hover:text-swamp-800 font-medium">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            Messages
+        </a>
+        <a href="/profile/@User.Identity.Name" class="flex items-center space-x-2 hover:opacity-80">
+            <img src="@(User.FindFirst("AvatarUrl")?.Value is { Length: > 0 } av ? av : "/images/default-avatar.svg")"
+                 class="w-8 h-8 rounded-full object-cover border border-swamp-200" alt="avatar">
+            <span class="text-sm font-medium text-swamp-700">@@@User.Identity.Name</span>
+        </a>
+        <a href="/account/logout?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)"
+           class="text-sm text-swamp-500 hover:text-swamp-700 border border-swamp-200 px-3 py-1 rounded-full">
+            Выйти
+        </a>
+    </div>
+}
+else
+{
+    <div class="flex items-center space-x-3">
+        <a href="/account/login" class="text-swamp-600 hover:text-swamp-800 font-medium text-sm">Войти</a>
+        <a href="/account/register" class="bg-swamp-500 text-white px-4 py-2 rounded-full hover:bg-swamp-600 font-medium text-sm">Регистрация</a>
+    </div>
+}
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-button" class="md:hidden text-swamp-600 hover:text-swamp-800 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden absolute w-full bg-white shadow-lg">
+            <div class="px-4 py-6 space-y-4">
+                <a href="/feed" class="block text-swamp-600 hover:text-swamp-800 font-medium">Swamp</a>
+                <a href="/ponds" class="block text-swamp-600 hover:text-swamp-800 font-medium">Ponds</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a href="/messages" class="block text-swamp-600 hover:text-swamp-800 font-medium">
+                        📨 Messages
+                    </a>
+                    <a href="/profile/@User.Identity.Name" class="block text-swamp-700 font-medium">Мой профиль</a>
+                    <a href="/account/logout" 
+   class="block text-swamp-500 hover:text-swamp-700">Выйти</a>
+                }
+                else
+                {
+                    <a href="/account/login" class="block bg-swamp-500 text-white px-6 py-2 rounded-full hover:bg-swamp-600 text-center font-medium">Войти</a>
+                    <a href="/account/register" class="block border border-swamp-500 text-swamp-700 px-6 py-2 rounded-full text-center font-medium">Регистрация</a>
+                }
+            </div>
+        </div>
+    </nav>
+
+    <!-- Скрипт мобильного меню -->
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                const isHidden = mobileMenu.classList.contains('hidden');
+                if (isHidden) {
+                    mobileMenu.classList.remove('hidden');
+                    mobileMenu.classList.add('block');
+                } else {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenu.classList.remove('block');
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!mobileMenu.contains(event.target) && !mobileMenuButton.contains(event.target)) {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenu.classList.remove('block');
+                }
+            });
+        }
+    </script>
+
+    <!-- Основной контент -->
+    <main class="flex-grow">
+        @RenderBody()
+    </main>
+
+    <!-- Subscribe Notification -->
+        @if (TempData?["SubscribeSuccess"] != null || TempData?["SubscribeError"] != null)
+        {
+            <div id="subscribe-notification" 
+                 class="fixed bottom-6 right-6 z-[200] px-6 py-4 rounded-2xl shadow-xl text-white flex items-center gap-3 max-w-xs">
+                
+                @if (TempData["SubscribeSuccess"] != null)
+                {
+                    <div class="bg-green-600 rounded-2xl px-6 py-4">
+                        @TempData["SubscribeSuccess"]
+                    </div>
+                }
+                else if (TempData["SubscribeError"] != null)
+                {
+                    <div class="bg-red-600 rounded-2xl px-6 py-4">
+                        @TempData["SubscribeError"]
+                    </div>
+                }
+            </div>
+        }
+
+    <!-- Footer -->
+    <footer class="bg-swamp-900 text-white mt-auto">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <img src="/green-toad-logo.svg" alt="Greenswamp Logo" class="h-8 w-8">
+                        <span class="text-xl font-bold">Greenswamp</span>
+                    </div>
+                    <p class="mt-4 text-sm text-swamp-300">
+                        Connecting people one ribbit at a time.
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="text-sm font-semibold">Company</h4>
+                        <ul class="mt-4 space-y-2 text-sm">
+                            <li><a asp-page="/About" class="text-swamp-300 hover:text-white">About</a></li>
+                            <li><a asp-page="/Contact" class="text-swamp-300 hover:text-white">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold">Legal</h4>
+                        <ul class="mt-4 space-y-2 text-sm">
+                            <li><a asp-page="/Privacy" class="text-swamp-300 hover:text-white">Privacy</a></li>
+                            <li><a asp-page="/Tos" class="text-swamp-300 hover:text-white">Terms</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold">Stay Updated</h4>
+                    <form method="post" asp-controller="Subscribe" asp-action="Subscribe" class="mt-4 flex">
+                        <input type="email" 
+                               name="Email"
+                               placeholder="your@email.edu"
+                               required
+                               class="px-4 py-2 rounded-l-full flex-1 text-swamp-900 focus:outline-none focus:ring-2 focus:ring-swamp-400">
+        
+                        <button type="submit" 
+                                class="bg-swamp-500 px-6 py-2 rounded-r-full hover:bg-swamp-600 font-medium transition-colors">
+                            Subscribe
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+
+
+    <script>
+        // Автоматическое скрытие уведомления о подписке через 4 секунды
+        setTimeout(() => {
+            const notification = document.getElementById('subscribe-notification');
+            if (notification) {
+                notification.style.transition = 'opacity 0.5s';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 500);
+            }
+        }, 4000);
+    </script>
+</body>
+</html>

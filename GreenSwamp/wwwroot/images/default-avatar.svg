@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Фон круг -->
+  <circle cx="50" cy="50" r="50" fill="#dcfce7"/>
+  <!-- Тело лягушки -->
+  <ellipse cx="50" cy="62" rx="26" ry="22" fill="#22c55e"/>
+  <!-- Голова -->
+  <ellipse cx="50" cy="42" rx="22" ry="20" fill="#22c55e"/>
+  <!-- Выпуклые глаза — основание -->
+  <circle cx="38" cy="30" r="9" fill="#16a34a"/>
+  <circle cx="62" cy="30" r="9" fill="#16a34a"/>
+  <!-- Белки глаз -->
+  <circle cx="38" cy="30" r="7" fill="white"/>
+  <circle cx="62" cy="30" r="7" fill="white"/>
+  <!-- Зрачки -->
+  <circle cx="39" cy="31" r="4" fill="#14532d"/>
+  <circle cx="63" cy="31" r="4" fill="#14532d"/>
+  <!-- Блики в глазах -->
+  <circle cx="41" cy="29" r="1.5" fill="white"/>
+  <circle cx="65" cy="29" r="1.5" fill="white"/>
+  <!-- Ноздри -->
+  <ellipse cx="45" cy="43" rx="2" ry="1.5" fill="#16a34a"/>
+  <ellipse cx="55" cy="43" rx="2" ry="1.5" fill="#16a34a"/>
+  <!-- Улыбка -->
+  <path d="M 38 52 Q 50 60 62 52" fill="none" stroke="#14532d" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Брюшко (светлое) -->
+  <ellipse cx="50" cy="65" rx="16" ry="13" fill="#86efac"/>
+</svg>

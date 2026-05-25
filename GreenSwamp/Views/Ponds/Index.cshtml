@@ -1,0 +1,151 @@
+﻿@{
+    ViewData["Title"] = "All Ponds";
+    var allTags = ViewBag.AllTags as List<GreenSwamp.Models.Tag>;
+    var trendingPonds = ViewBag.TrendingPonds as List<GreenSwamp.Data.TrendingPond>;
+    var tagPostCounts = ViewBag.TagPostCounts as Dictionary<int, int>;
+    bool isAuth = User.Identity?.IsAuthenticated == true;
+    string? currentUsername = User.Identity?.Name;
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-0 lg:divide-x min-h-[calc(100vh-4rem)]">
+
+        <!-- LEFT SIDEBAR -->
+        <div class="lg:col-span-1 bg-white">
+            <div class="p-6 space-y-4">
+                @if (isAuth)
+                {
+                    <div class="flex items-center space-x-3 pb-4 border-b border-swamp-100">
+                        <a href="/profile/@currentUsername">
+                            <img src="@(User.FindFirst("AvatarUrl")?.Value is { Length: > 0 } u ? u : "/images/default-avatar.svg")"
+                                 class="w-12 h-12 rounded-full object-cover" alt="avatar">
+                        </a>
+                        <div>
+                            <a href="/profile/@currentUsername" class="font-semibold text-swamp-900 hover:underline text-sm block">
+                                @User.FindFirst("DisplayName")?.Value
+                            </a>
+                            <p class="text-xs text-swamp-500">@@@currentUsername</p>
+                        </div>
+                    </div>
+                    <a href="/account/logout?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)"
+                       class="w-full flex items-center justify-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-full font-medium text-sm transition-colors border border-red-200">
+                        <span>🚪</span><span>Выйти</span>
+                    </a>
+                }
+                else
+                {
+                    <div class="p-4 bg-swamp-50 rounded-xl border border-swamp-200 text-center space-y-3">
+                        <p class="text-swamp-700 text-sm font-medium">Присоединяйтесь! 🐸</p>
+                        <a href="/account/register" class="block w-full bg-swamp-500 hover:bg-swamp-600 text-white py-2 rounded-full text-sm font-medium">Регистрация</a>
+                        <a href="/account/login" class="block w-full border border-swamp-300 text-swamp-700 py-2 rounded-full text-sm font-medium hover:bg-swamp-50">Войти</a>
+                    </div>
+                }
+                <nav class="space-y-1 pt-2">
+                    <a href="/feed" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-swamp-50 text-swamp-700">
+                        <span class="text-xl">🐸</span><span>Swamp</span>
+                    </a>
+                    <a href="/ponds" class="flex items-center space-x-3 p-2 rounded-lg bg-swamp-50 text-swamp-900 font-medium">
+                        <span class="text-xl">🌿</span><span>Ponds</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="lg:col-span-2 bg-white">
+            <div class="p-6">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold text-swamp-900 mb-2">🌿 All Ponds</h1>
+                    <p class="text-swamp-600">Explore all hashtags in the swamp</p>
+                </div>
+
+                <!-- Search -->
+                <div class="mb-6">
+                    <div class="relative">
+                        <input type="text" 
+                               id="tagSearch"
+                               onkeyup="filterTags()"
+                               placeholder="🔍 Search ponds..."
+                               class="w-full px-4 py-3 pl-12 border border-swamp-200 rounded-xl focus:ring-2 focus:ring-swamp-400 focus:border-transparent text-sm">
+                        <span class="absolute left-4 top-3.5 text-swamp-400"></span>
+                    </div>
+                </div>
+
+                <!-- Tags Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="tagsGrid">
+                    @if (allTags != null && allTags.Any())
+                    {
+                        @foreach (var tag in allTags)
+                        {
+                            var postCount = tagPostCounts != null && tagPostCounts.ContainsKey(tag.TagId) 
+                                ? tagPostCounts[tag.TagId] 
+                                : 0;
+                            
+                            <a href="/ponds/@tag.TagName" 
+                               class="tag-item flex items-center justify-between p-4 bg-white border border-swamp-200 rounded-xl hover:border-swamp-400 hover:shadow-md transition-all group">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-swamp-100 rounded-lg flex items-center justify-center text-swamp-600 font-bold text-sm group-hover:bg-swamp-200 transition-colors">
+                                        #
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-swamp-900 text-sm group-hover:text-swamp-600">#@tag.TagName</p>
+                                        <p class="text-xs text-swamp-400">@postCount posts</p>
+                                    </div>
+                                </div>
+                                <span class="text-swamp-400 group-hover:text-swamp-600 transition-colors">→</span>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-span-2 text-center py-12 text-swamp-400">
+                            <p class="text-4xl mb-3">🏷️</p>
+                            <p>No ponds yet</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div class="lg:col-span-1 bg-white">
+            <div class="p-6">
+                <h3 class="text-base font-semibold text-swamp-900 mb-4">Trending Ponds</h3>
+                @if (trendingPonds != null && trendingPonds.Any())
+                {
+                    <ul class="space-y-2">
+                        @foreach (var pond in trendingPonds)
+                        {
+                            <li>
+                                <a href="/ponds/@pond.TagName" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-swamp-50 group">
+                                    <div class="w-8 h-8 bg-swamp-100 rounded-lg flex items-center justify-center text-swamp-600 font-bold text-xs">#</div>
+                                    <div>
+                                        <p class="font-medium text-swamp-900 text-sm group-hover:text-swamp-600">#@pond.TagName</p>
+                                        <p class="text-xs text-swamp-400">@pond.RecentPosts posts</p>
+                                    </div>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-swamp-400 text-sm">No trending ponds yet</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterTags() {
+    var input = document.getElementById('tagSearch');
+    var filter = input.value.toLowerCase();
+    var tags = document.getElementsByClassName('tag-item');
+    
+    for (var i = 0; i < tags.length; i++) {
+        var text = tags[i].textContent || tags[i].innerText;
+        tags[i].style.display = text.toLowerCase().indexOf(filter) > -1 ? '' : 'none';
+    }
+}
+</script>

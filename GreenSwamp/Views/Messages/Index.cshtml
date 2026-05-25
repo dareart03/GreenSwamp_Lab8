@@ -1,0 +1,367 @@
+@{
+    ViewData["Title"] = "Messages";
+    Layout = "~/Views/_Layout.cshtml";
+    var rooms = ViewBag.Rooms as List<GreenSwamp.Hubs.ChatRoom>;
+}
+
+<!-- Страница занимает всю высоту экрана минус навбар -->
+<div class="flex h-[calc(100vh-64px)] overflow-hidden">
+
+    <!-- ── Левая панель: список комнат и онлайн-пользователи ────────────────── -->
+    <div class="w-72 bg-white border-r border-swamp-100 flex flex-col flex-shrink-0">
+
+        <!-- Заголовок -->
+        <div class="p-5 border-b border-swamp-100">
+            <h2 class="text-xl font-bold text-swamp-900">Сообщения</h2>
+            <p class="text-sm text-swamp-500 mt-1">Групповые чаты</p>
+        </div>
+
+        <!-- Список комнат -->
+        <div class="flex-1 overflow-y-auto">
+            <p class="px-4 pt-4 pb-2 text-xs font-semibold text-swamp-400 uppercase tracking-wider">Чаты</p>
+            @if (rooms != null)
+            {
+                @foreach (var room in rooms)
+                {
+                    <button onclick="joinRoom('@room.Id')"
+                            id="room-btn-@room.Id"
+                            class="room-btn w-full text-left px-4 py-3 hover:bg-swamp-50 border-b border-swamp-50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-swamp-100 flex items-center justify-center text-lg flex-shrink-0">
+                                @room.Name.Split(' ')[0]
+                            </div>
+                            <div class="overflow-hidden">
+                                <p class="font-medium text-swamp-900 text-sm">@room.Name.Substring(room.Name.IndexOf(' ') + 1)</p>
+                                <p class="text-xs text-swamp-500 truncate">@room.Description</p>
+                            </div>
+                        </div>
+                    </button>
+                }
+            }
+
+            <!-- Онлайн пользователи -->
+            <p class="px-4 pt-5 pb-2 text-xs font-semibold text-swamp-400 uppercase tracking-wider">Онлайн</p>
+            <div id="online-users" class="px-2 pb-4 flex flex-col gap-1">
+                <p class="text-sm text-swamp-400 px-2">Загрузка...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Правая панель: окно активного чата ───────────────────────────────── -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+        <!-- Заголовок чата -->
+        <div class="bg-white border-b border-swamp-100 px-6 py-4 flex items-center gap-3">
+            <div id="chat-room-icon" class="w-10 h-10 rounded-full bg-swamp-100 flex items-center justify-center text-xl">🌿</div>
+            <div>
+                <h3 id="chat-room-name" class="font-semibold text-swamp-900">General</h3>
+                <p id="chat-room-desc" class="text-sm text-swamp-500">Общий чат для всех обитателей болота</p>
+            </div>
+            <!-- Индикатор "печатает..." -->
+            <div id="typing-indicator" class="ml-auto text-sm text-swamp-400 italic hidden">
+                <span id="typing-text"></span>
+            </div>
+        </div>
+
+        <!-- Область сообщений -->
+        <div id="messages-container" class="flex-1 overflow-y-auto p-6 space-y-4 bg-swamp-50">
+            <!-- Сообщения добавляются динамически через JS -->
+            <div class="text-center">
+                <span class="text-sm text-swamp-400 bg-white px-4 py-1 rounded-full shadow-sm">
+                    Добро пожаловать в чат! 🐸
+                </span>
+            </div>
+        </div>
+
+        <!-- Поле ввода -->
+        <div class="bg-white border-t border-swamp-100 p-4">
+            <div class="flex gap-3 items-center">
+                <!-- Аватарка текущего пользователя -->
+                <img id="my-avatar" src="/images/default-avatar.svg"
+                     class="w-9 h-9 rounded-full flex-shrink-0 object-cover">
+                <!-- Поле сообщения -->
+                <div class="flex-1 relative">
+                    <input id="message-input"
+                           type="text"
+                           placeholder="Написать сообщение..."
+                           maxlength="500"
+                           class="w-full pl-4 pr-12 py-2.5 bg-swamp-50 border border-swamp-200 rounded-full
+                                  focus:outline-none focus:ring-2 focus:ring-swamp-400 focus:border-transparent
+                                  text-swamp-900 placeholder-swamp-400">
+                    <!-- Кнопка отправки -->
+                    <button id="send-btn"
+                            onclick="sendMessage()"
+                            class="absolute right-2 top-1.5 p-1.5 bg-swamp-500 hover:bg-swamp-600
+                                   text-white rounded-full transition-colors disabled:opacity-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" transform="rotate(90 12 12)"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SignalR JS-клиент (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+<script>
+// ── Данные текущего пользователя (из Razor, передаём в JS) ──────────────────
+const MY_USERNAME = "@User.Identity!.Name";
+let currentRoom   = "general";
+
+// Room data passed as JSON to avoid HTML-encoding of non-ASCII characters.
+const ROOMS = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    (rooms ?? new List<GreenSwamp.Hubs.ChatRoom>()).ToDictionary(
+        r => r.Id,
+        r => new {
+            name = r.Name.Contains(' ') ? r.Name.Substring(r.Name.IndexOf(' ') + 1) : r.Name,
+            icon = r.Name.Contains(' ') ? r.Name.Split(' ')[0] : "?",
+            desc = r.Description
+        }
+    )
+));
+
+// ── Подключение к SignalR Hub ────────────────────────────────────────────────
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/chats")                              // URL хаба из Program.cs
+    .withAutomaticReconnect()                       // автопереподключение при разрыве
+    .configureLogging(signalR.LogLevel.Warning)
+    .build();
+
+// ── Обработчики событий от сервера ──────────────────────────────────────────
+
+// Init — получаем начальное состояние при подключении
+connection.on("Init", (data) => {
+    currentRoom = data.currentRoom;
+    setActiveRoom(currentRoom);
+    renderOnlineUsers(data.onlineUsers);
+    // Подставляем аватарку текущего пользователя
+    const me = data.onlineUsers.find(u => u.username === MY_USERNAME);
+    if (me) document.getElementById("my-avatar").src = me.avatarUrl;
+});
+
+// ReceiveMessage — новое сообщение в текущей комнате
+connection.on("ReceiveMessage", (data) => {
+    appendMessage(data, data.username === MY_USERNAME);
+});
+
+// UserJoined — кто-то вошёл в комнату
+connection.on("UserJoined", (data) => {
+    if (data.room === currentRoom) appendSystemMessage(data.message);
+    updateOnlineUser(data);
+});
+
+// UserLeft — кто-то ушёл
+connection.on("UserLeft", (data) => {
+    appendSystemMessage(data.message);
+});
+
+// OnlineUsers — обновлённый список онлайн
+connection.on("OnlineUsers", (users) => {
+    renderOnlineUsers(users);
+});
+
+// RoomSwitched — сервер подтвердил переключение комнаты
+connection.on("RoomSwitched", (roomId) => {
+    currentRoom = roomId;
+    setActiveRoom(roomId);
+    // Очищаем историю
+    document.getElementById("messages-container").innerHTML =
+        `<div class="text-center"><span class="text-sm text-swamp-400 bg-white px-4 py-1 rounded-full shadow-sm">Вы перешли в чат ${ROOMS[roomId]?.name ?? roomId} 🐸</span></div>`;
+});
+
+// UserTyping — кто-то набирает текст
+connection.on("UserTyping", (displayName) => {
+    showTyping(displayName);
+});
+
+// ── Запуск подключения ───────────────────────────────────────────────────────
+async function start() {
+    try {
+        await connection.start();
+        console.log("SignalR подключён");
+        document.getElementById("send-btn").disabled = false;
+    } catch (err) {
+        console.error("SignalR ошибка:", err);
+        setTimeout(start, 3000);
+    }
+}
+
+connection.onreconnecting(() => {
+    document.getElementById("send-btn").disabled = true;
+    appendSystemMessage("Переподключение...");
+});
+connection.onreconnected(() => {
+    document.getElementById("send-btn").disabled = false;
+    appendSystemMessage("Соединение восстановлено");
+});
+
+start();
+
+// ── Отправка сообщения ───────────────────────────────────────────────────────
+async function sendMessage() {
+    const input = document.getElementById("message-input");
+    const text  = input.value.trim();
+    if (!text || connection.state !== signalR.HubConnectionState.Connected) return;
+
+    try {
+        await connection.invoke("SendMessage", text);
+        input.value = "";
+    } catch (err) {
+        console.error("Ошибка отправки:", err);
+    }
+}
+
+// Отправка по Enter
+document.getElementById("message-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// Уведомление о наборе (throttle — не чаще раза в 2 секунды)
+let typingThrottle = null;
+document.getElementById("message-input").addEventListener("input", () => {
+    if (typingThrottle) return;
+    typingThrottle = setTimeout(() => { typingThrottle = null; }, 2000);
+    if (connection.state === signalR.HubConnectionState.Connected)
+        connection.invoke("Typing").catch(() => {});
+});
+
+// ── Переключение комнаты ─────────────────────────────────────────────────────
+async function joinRoom(roomId) {
+    if (roomId === currentRoom || connection.state !== signalR.HubConnectionState.Connected) return;
+    await connection.invoke("JoinRoom", roomId);
+}
+
+// ── Вспомогательные функции UI ───────────────────────────────────────────────
+
+// Подсветить активную комнату в боковой панели
+function setActiveRoom(roomId) {
+    document.querySelectorAll(".room-btn").forEach(btn => {
+        btn.classList.remove("bg-swamp-100", "font-semibold");
+    });
+    const btn = document.getElementById(`room-btn-${roomId}`);
+    if (btn) btn.classList.add("bg-swamp-100");
+
+    // Обновить заголовок чата
+    const room = ROOMS[roomId];
+    if (room) {
+        document.getElementById("chat-room-icon").textContent = room.icon;
+        document.getElementById("chat-room-name").textContent = room.name;
+        document.getElementById("chat-room-desc").textContent = room.desc;
+    }
+}
+
+// Добавить сообщение в контейнер
+function appendMessage(data, isMine) {
+    const container = document.getElementById("messages-container");
+    const time = data.time ?? new Date().toLocaleTimeString("ru", {hour:"2-digit", minute:"2-digit"});
+
+    const wrap = document.createElement("div");
+    wrap.className = `flex items-end gap-2 ${isMine ? "justify-end" : ""}`;
+
+    if (!isMine) {
+        // Аватарка собеседника слева
+        const img = document.createElement("img");
+        img.src       = data.avatarUrl ?? "/images/default-avatar.svg";
+        img.className = "w-8 h-8 rounded-full object-cover flex-shrink-0";
+        wrap.appendChild(img);
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = `max-w-xs lg:max-w-md ${isMine ? "items-end" : "items-start"} flex flex-col`;
+
+    if (!isMine) {
+        const name = document.createElement("span");
+        name.className   = "text-xs text-swamp-500 mb-1 px-1";
+        name.textContent = data.displayName;
+        bubble.appendChild(name);
+    }
+
+    const msgBox = document.createElement("div");
+    msgBox.className = isMine
+        ? "bg-swamp-600 text-white px-4 py-2 rounded-2xl rounded-br-sm shadow-sm"
+        : "bg-white text-swamp-900 px-4 py-2 rounded-2xl rounded-bl-sm shadow-sm";
+
+    const p = document.createElement("p");
+    p.className   = "text-sm break-words";
+    p.textContent = data.message;
+    msgBox.appendChild(p);
+    bubble.appendChild(msgBox);
+
+    const timeEl = document.createElement("span");
+    timeEl.className   = "text-xs text-swamp-400 mt-1 px-1";
+    timeEl.textContent = time;
+    bubble.appendChild(timeEl);
+
+    wrap.appendChild(bubble);
+
+    if (isMine) {
+        // Аватарка своя справа
+        const img = document.createElement("img");
+        img.src       = document.getElementById("my-avatar").src;
+        img.className = "w-8 h-8 rounded-full object-cover flex-shrink-0";
+        wrap.appendChild(img);
+    }
+
+    container.appendChild(wrap);
+    container.scrollTop = container.scrollHeight;
+}
+
+// Системное сообщение (вход/выход пользователя)
+function appendSystemMessage(text) {
+    const container = document.getElementById("messages-container");
+    const div = document.createElement("div");
+    div.className = "text-center";
+    div.innerHTML = `<span class="text-xs text-swamp-400 bg-white px-3 py-1 rounded-full shadow-sm">${text}</span>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+// Отрисовать список онлайн-пользователей
+function renderOnlineUsers(users) {
+    const container = document.getElementById("online-users");
+    container.innerHTML = "";
+    if (!users || users.length === 0) {
+        container.innerHTML = '<p class="text-sm text-swamp-400 px-2">Никого нет</p>';
+        return;
+    }
+    users.forEach(u => {
+        const div = document.createElement("div");
+        div.className = "flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-swamp-50";
+        const roomName = ROOMS[u.currentRoom]?.name ?? u.currentRoom;
+        div.innerHTML = `
+            <div class="relative">
+                <img src="${u.avatarUrl}" class="w-8 h-8 rounded-full object-cover">
+                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-white"></span>
+            </div>
+            <div class="overflow-hidden">
+                <p class="text-sm font-medium text-swamp-900 truncate">${u.displayName}</p>
+                <p class="text-xs text-swamp-400 truncate">${roomName}</p>
+            </div>`;
+        container.appendChild(div);
+    });
+}
+
+// Добавить пользователя в онлайн-список (при UserJoined)
+function updateOnlineUser(data) {
+    // Проще перерисовать весь список — он небольшой
+    // Сервер пришлёт OnlineUsers отдельно, здесь просто ждём
+}
+
+// Индикатор набора текста
+let typingTimer = null;
+function showTyping(displayName) {
+    const el   = document.getElementById("typing-indicator");
+    const text = document.getElementById("typing-text");
+    text.textContent = `${displayName} набирает...`;
+    el.classList.remove("hidden");
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => el.classList.add("hidden"), 2000);
+}
+</script>

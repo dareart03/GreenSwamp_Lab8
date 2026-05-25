@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36518.9 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GreenSwamp", "GreenSwamp\GreenSwamp.csproj", "{A7FD5B28-8D71-4240-B5C8-C1BC0145E3D8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A7FD5B28-8D71-4240-B5C8-C1BC0145E3D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7FD5B28-8D71-4240-B5C8-C1BC0145E3D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7FD5B28-8D71-4240-B5C8-C1BC0145E3D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7FD5B28-8D71-4240-B5C8-C1BC0145E3D8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B1B5D8B3-739E-4942-8836-F1CAC8C97145}
+	EndGlobalSection
+EndGlobal

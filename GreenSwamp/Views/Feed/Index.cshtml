@@ -1,0 +1,407 @@
+﻿@model List<GreenSwamp.Models.Post>
+@{
+    ViewData["Title"] = "Feed";
+    var interactions = ViewBag.PostInteractions as Dictionary<int, Dictionary<string, int>>;
+    var trendingPonds = ViewBag.TrendingPonds as List<GreenSwamp.Data.TrendingPond>;
+    var tagPostCounts = ViewBag.TagPostCounts as Dictionary<int, int>;
+    bool isAuth = User.Identity?.IsAuthenticated == true;
+    string? currentUsername = User.Identity?.Name;
+    string? currentAvatar = User.FindFirst("AvatarUrl")?.Value;
+    string? currentDisplayName = User.FindFirst("DisplayName")?.Value;
+
+    string FormatContent(string content)
+    {
+        var regex = new System.Text.RegularExpressions.Regex(@"#(\w+)");
+        return regex.Replace(content, "<a href='/ponds/$1' class='text-swamp-600 hover:underline'>#$1</a>");
+    }
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-0 lg:divide-x min-h-[calc(100vh-4rem)]">
+
+        <!-- LEFT SIDEBAR -->
+        <div class="lg:col-span-1 bg-white">
+            <div class="p-6 space-y-4">
+                @if (isAuth)
+{
+    <div class="flex items-center space-x-3 pb-4 border-b border-swamp-100">
+        <a href="/profile/@currentUsername">
+            <img src="@(currentAvatar is { Length: > 0 } ? currentAvatar : "/images/default-avatar.svg")"
+                 class="w-12 h-12 rounded-full object-cover" alt="avatar">
+        </a>
+        <div>
+            <a href="/profile/@currentUsername" class="font-semibold text-swamp-900 hover:underline text-sm block">
+                @currentDisplayName
+            </a>
+            <p class="text-xs text-swamp-500">@@@currentUsername</p>
+        </div>
+    </div>
+    <button onclick="openPostModal()"
+            class="w-full flex items-center justify-center space-x-2 bg-swamp-500 hover:bg-swamp-600 text-white px-4 py-2.5 rounded-full font-medium transition-colors text-sm">
+        <span>✏️</span><span>Написать Ribbit</span>
+    </button>
+    
+    <a href="/account/logout?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)"
+       class="w-full flex items-center justify-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-full font-medium text-sm transition-colors border border-red-200 mt-2">
+        <span>🚪</span><span>Выйти</span>
+    </a>
+}
+                else
+                {
+                    <div class="p-4 bg-swamp-50 rounded-xl border border-swamp-200 text-center space-y-3">
+                        <p class="text-swamp-700 text-sm font-medium">Присоединяйтесь к болоту! 🐸</p>
+                        <a href="/account/register"
+                           class="block w-full bg-swamp-500 hover:bg-swamp-600 text-white py-2 rounded-full text-sm font-medium">
+                            Зарегистрироваться
+                        </a>
+                        <a href="/account/login"
+                           class="block w-full border border-swamp-300 hover:bg-swamp-50 text-swamp-700 py-2 rounded-full text-sm font-medium">
+                            Войти
+                        </a>
+                    </div>
+                }
+                <nav class="space-y-1 pt-2">
+                    <a href="/feed" class="flex items-center space-x-3 p-2 rounded-lg bg-swamp-50 text-swamp-900 font-medium">
+                        <span class="text-xl">🐸</span><span>Swamp</span>
+                    </a>
+                    <a href="/ponds" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-swamp-50 text-swamp-700">
+                        <span class="text-xl">🌿</span><span>Ponds</span>
+                    </a>
+                    <a href="/messages" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-swamp-50 text-swamp-700">
+                        <span class="text-xl">💬</span><span>Messages</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- MAIN FEED -->
+        <div class="lg:col-span-2 divide-y bg-white" id="feed-container">
+            @if (!Model.Any())
+            {
+                <div class="p-12 text-center text-swamp-400">
+                    <p class="text-4xl mb-3">🐸</p>
+                    <p class="text-lg">В болоте пока тихо...</p>
+                </div>
+            }
+
+            @foreach (var post in Model)
+            {
+                <div class="p-5" id="post-@post.PostId">
+                    <div class="flex items-start space-x-3">
+                        <a href="/profile/@post.User.Username" class="flex-shrink-0">
+                            <img src="@(string.IsNullOrEmpty(post.User.AvatarUrl) ? $"https://api.dicebear.com/9.x/adventurer/svg?seed={Uri.EscapeDataString(post.User.Username)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf" : post.User.AvatarUrl)"
+                                 alt="@post.User.DisplayName" class="w-10 h-10 rounded-full object-cover">
+                        </a>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center space-x-2 flex-wrap">
+                                <a href="/profile/@post.User.Username" class="font-semibold text-swamp-900 hover:underline text-sm">
+                                    @post.User.DisplayName
+                                </a>
+                                <span class="text-swamp-400 text-xs">@@@post.User.Username</span>
+                                <span class="text-swamp-200 text-xs">·</span>
+                                <a href="/feed/post/@post.PostId" class="text-xs text-swamp-400 hover:text-swamp-600">
+                                    @post.CreatedAt.ToString("MMM d")
+                                </a>
+                            </div>
+
+                            <a href="/feed/post/@post.PostId" class="block mt-1">
+                                <p class="text-swamp-800 text-sm leading-relaxed">@Html.Raw(FormatContent(post.Content))</p>
+                            </a>
+
+                            @if (post.PostType != "text" && !string.IsNullOrEmpty(post.MediaUrl))
+                            {
+                                <div class="mt-3 rounded-xl overflow-hidden border border-swamp-100">
+                                    @if (post.PostType == "image")
+                                    {
+                                        <img src="@post.MediaUrl" alt="@post.AltText" class="w-full max-h-72 object-cover">
+                                    }
+                                    else if (post.PostType == "video")
+                                    {
+                                        <video controls class="w-full"><source src="@post.MediaUrl" type="video/mp4"></video>
+                                    }
+                                </div>
+                            }
+
+                            @if (post.Event != null)
+                            {
+                                <div class="mt-3 p-3 bg-swamp-50 rounded-xl border border-swamp-200">
+                                    <p class="font-semibold text-swamp-900 text-sm">📅 @post.Event.Location</p>
+                                    <p class="text-swamp-500 text-xs">@post.Event.EventTime.ToString("ddd, MMM d · h:mm tt")</p>
+                                    @if (post.Event.HostOrg != null) { <p class="text-xs text-swamp-400">by @post.Event.HostOrg</p> }
+                                    @if (post.Event.MaxCapacity.HasValue)
+                                    {
+                                        <p class="text-xs text-swamp-400">@post.Event.RsvpCount / @post.Event.MaxCapacity мест занято</p>
+                                    }
+                                </div>
+                            }
+
+                            @if (post.PostTags.Any())
+                            {
+                                <div class="mt-2 flex flex-wrap gap-1">
+                                    @foreach (var pt in post.PostTags)
+                                    {
+                                        <a href="/ponds/@pt.Tag.TagName"
+                                           class="text-xs text-swamp-600 bg-swamp-100 hover:bg-swamp-200 px-2 py-0.5 rounded-full">#@pt.Tag.TagName</a>
+                                    }
+                                </div>
+                            }
+
+                            <div class="mt-3 flex items-center space-x-5 text-swamp-400 text-xs">
+                                <button onclick="interact(@post.PostId, 'comment')"
+                                        class="flex items-center space-x-1 hover:text-swamp-700 transition-colors">
+                                    <span>💬</span>
+                                    <span id="count-comment-@post.PostId">@(interactions?.GetValueOrDefault(post.PostId)?.GetValueOrDefault("comments") ?? 0)</span>
+                                </button>
+                                <button onclick="interact(@post.PostId, 'reribb')"
+                                        class="flex items-center space-x-1 hover:text-green-600 transition-colors">
+                                    <span>🔄</span>
+                                    <span id="count-reribb-@post.PostId">@(interactions?.GetValueOrDefault(post.PostId)?.GetValueOrDefault("reribbs") ?? 0)</span>
+                                </button>
+                                <button onclick="interact(@post.PostId, 'like')"
+                                        class="flex items-center space-x-1 hover:text-red-500 transition-colors">
+                                    <span>❤️</span>
+                                    <span id="count-like-@post.PostId">@(interactions?.GetValueOrDefault(post.PostId)?.GetValueOrDefault("likes") ?? 0)</span>
+                                </button>
+                                @if (post.Event != null)
+                                {
+                                    <button onclick="interact(@post.PostId, 'rsvp')"
+                                            class="flex items-center space-x-1 hover:text-blue-500 transition-colors">
+                                        <span>📅</span>
+                                        <span id="count-rsvp-@post.PostId">@(interactions?.GetValueOrDefault(post.PostId)?.GetValueOrDefault("rsvps") ?? 0)</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div class="lg:col-span-1 bg-white">
+            <div class="p-6">
+                <h3 class="text-base font-semibold text-swamp-900 mb-4">Trending Ponds</h3>
+                @if (trendingPonds != null && trendingPonds.Any())
+                {
+                    <ul class="space-y-2">
+                        @foreach (var pond in trendingPonds)
+                        {
+                            <li>
+                                <a href="/ponds/@pond.TagName" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-swamp-50 group">
+                                    <div class="w-8 h-8 bg-swamp-100 rounded-lg flex items-center justify-center text-swamp-600 font-bold text-xs">#</div>
+                                    <div>
+                                        <p class="font-medium text-swamp-900 text-sm group-hover:text-swamp-600">#@pond.TagName</p>
+                                        <p class="text-xs text-swamp-400">@(tagPostCounts?.GetValueOrDefault(pond.TagId) ?? pond.RecentPosts) posts</p>
+                                    </div>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+                else { <p class="text-swamp-400 text-sm">No trending ponds yet</p> }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isAuth)
+{
+    <div id="postModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-swamp-900">Новый Ribbit</h3>
+                <button onclick="closePostModal()" class="text-swamp-400 hover:text-swamp-700 text-2xl leading-none">×</button>
+            </div>
+            <div class="flex space-x-3">
+                <img src="@(currentAvatar is { Length: > 0 } ? currentAvatar : "/images/default-avatar.svg")"
+                     class="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="avatar">
+                <div class="flex-1">
+                    <textarea id="postContent" rows="4"
+                              class="w-full p-3 border border-swamp-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-swamp-400 text-sm"
+                              placeholder="Что квакаешь? Используй #хэштеги..."></textarea>
+                    
+                    <!-- Превью медиа -->
+                    <div id="mediaPreview" class="mt-3 hidden">
+                        <div class="relative inline-block">
+                            <img id="imagePreview" src="" alt="Preview" class="max-h-48 rounded-lg hidden">
+                            <video id="videoPreview" controls class="max-h-48 rounded-lg hidden"></video>
+                            <button onclick="removeMedia()" 
+                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <p id="postError" class="text-red-500 text-xs mt-1 hidden"></p>
+                </div>
+            </div>
+            
+            <!-- Нижняя панель с кнопками -->
+            <div class="mt-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <!-- Кнопка загрузки фото -->
+                    <label for="mediaUpload" class="cursor-pointer p-2 hover:bg-swamp-50 rounded-full transition-colors" title="Добавить фото или видео">
+                        <span class="text-xl">📷</span>
+                    </label>
+                    <input type="file" id="mediaUpload" accept="image/*,video/*" class="hidden" onchange="handleMediaSelect(event)">
+                    
+                    <!-- Индикатор выбранного файла -->
+                    <span id="fileInfo" class="text-xs text-swamp-500 hidden"></span>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button onclick="closePostModal()"
+                            class="px-4 py-2 text-swamp-600 hover:bg-swamp-50 rounded-full text-sm">Отмена</button>
+                    <button onclick="submitPost()"
+                            class="px-5 py-2 bg-swamp-500 hover:bg-swamp-600 text-white rounded-full font-medium text-sm transition-colors">
+                        Отправить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+var selectedFile = null;
+
+function openPostModal() {
+    document.getElementById('postModal')?.classList.remove('hidden');
+    document.getElementById('postContent')?.focus();
+}
+
+function closePostModal() {
+    var m = document.getElementById('postModal');
+    if (m) m.classList.add('hidden');
+    var c = document.getElementById('postContent');
+    if (c) c.value = '';
+    var e = document.getElementById('postError');
+    if (e) { e.textContent = ''; e.classList.add('hidden'); }
+    removeMedia();
+}
+
+function handleMediaSelect(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    
+    // Проверяем тип файла
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        alert('Пожалуйста, выберите фото или видео');
+        return;
+    }
+    
+    // Проверяем размер (максимум 50 МБ)
+    if (file.size > 50 * 1024 * 1024) {
+        alert('Файл слишком большой. Максимум 50 МБ');
+        return;
+    }
+    
+    selectedFile = file;
+    
+    // Показываем превью
+    var preview = document.getElementById('mediaPreview');
+    var imagePreview = document.getElementById('imagePreview');
+    var videoPreview = document.getElementById('videoPreview');
+    var fileInfo = document.getElementById('fileInfo');
+    
+    preview.classList.remove('hidden');
+    fileInfo.classList.remove('hidden');
+    fileInfo.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
+    
+    var url = URL.createObjectURL(file);
+    
+    if (file.type.startsWith('image/')) {
+        imagePreview.src = url;
+        imagePreview.classList.remove('hidden');
+        videoPreview.classList.add('hidden');
+    } else {
+        videoPreview.src = url;
+        videoPreview.classList.remove('hidden');
+        imagePreview.classList.add('hidden');
+    }
+}
+
+function removeMedia() {
+    selectedFile = null;
+    document.getElementById('mediaPreview').classList.add('hidden');
+    document.getElementById('imagePreview').classList.add('hidden');
+    document.getElementById('videoPreview').classList.add('hidden');
+    document.getElementById('fileInfo').classList.add('hidden');
+    document.getElementById('mediaUpload').value = '';
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+async function submitPost() {
+    var content = document.getElementById('postContent').value.trim();
+    var errEl = document.getElementById('postError');
+    
+    if (!content && !selectedFile) { 
+        errEl.textContent = 'Напиши что-нибудь или добавь фото/видео!'; 
+        errEl.classList.remove('hidden'); 
+        return; 
+    }
+
+    try {
+        var formData = new FormData();
+        formData.append('content', content);
+        
+        if (selectedFile) {
+            formData.append('media', selectedFile);
+        }
+        
+        var res = await fetch('/api/posts', {
+            method: 'POST',
+            body: formData  // Не ставим Content-Type, браузер сам поставит с boundary
+        });
+        
+        if (res.status === 401) { 
+            window.location = '/account/login'; 
+            return; 
+        }
+        
+        var data = await res.json();
+        
+        if (!res.ok) { 
+            errEl.textContent = data.error || 'Ошибка'; 
+            errEl.classList.remove('hidden'); 
+            return; 
+        }
+        
+        closePostModal();
+        window.location.reload(); // Перезагружаем страницу чтобы увидеть новый пост
+    } catch(e) {
+        // Показываем ошибку пользователю — важно чтобы она не пропала молча
+        errEl.textContent = 'Ошибка отправки. Попробуй ещё раз или проверь размер файла (макс. 50 МБ).';
+        errEl.classList.remove('hidden');
+        console.error('submitPost error:', e);
+    }
+}
+
+async function interact(postId, type) {
+    try {
+        var res = await fetch('/api/posts/' + postId + '/interactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: type })
+        });
+        
+        if (res.status === 401) { 
+            window.location = '/account/login?returnUrl=' + window.location.pathname; 
+            return; 
+        }
+        
+        if (!res.ok) return;
+        
+        var data = await res.json();
+        var el = document.getElementById('count-' + type + '-' + postId);
+        if (el) el.textContent = data.count;
+    } catch(e) {
+        console.error('Interaction error:', e);
+    }
+}
+</script>

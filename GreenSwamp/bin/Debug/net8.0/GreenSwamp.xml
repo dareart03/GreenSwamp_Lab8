@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GreenSwamp</name>
+    </assembly>
+    <members>
+        <member name="M:GreenSwamp.Controllers.Api.AuthApiController.Login(GreenSwamp.Api.LoginRequest)">
+             <summary>Получить JWT-токен по логину и паролю</summary>
+             <remarks>
+             Пример запроса:
+            
+                 POST /api/v1/auth/login
+                 { "username": "lily_pad", "password": "password123" }
+            
+             Полученный token вставляй в Swagger через кнопку Authorize (Bearer схема).
+             </remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.PostsRestApiController.GetAll(System.String,System.Nullable{System.Int32},System.Int32,System.Int32)">
+            <summary>Получить ленту постов</summary>
+            <param name="tag">Фильтр по тегу (необязательно)</param>
+            <param name="userId">Фильтр по автору (необязательно)</param>
+            <param name="page">Страница (с 1)</param>
+            <param name="pageSize">Записей на странице (макс. 100)</param>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.PostsRestApiController.GetById(System.Int32)">
+            <summary>Получить пост по ID (включая ответы)</summary>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.PostsRestApiController.Create(GreenSwamp.Api.CreatePostRequest)">
+            <summary>Создать новый пост</summary>
+            <remarks>
+            🔒 Требует JWT.
+            Теги из поля Tags создаются автоматически, если ещё не существуют.
+            PostType: "text" — без медиа, "image"/"video" — обязательно передать MediaUrl.
+            </remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.PostsRestApiController.Update(System.Int32,GreenSwamp.Api.UpdatePostRequest)">
+            <summary>Изменить содержимое поста</summary>
+            <remarks>🔒 Требует JWT. Можно изменить только свой пост. Медиа и теги не меняются.</remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.PostsRestApiController.Delete(System.Int32)">
+            <summary>Удалить пост</summary>
+            <remarks>
+            🔒 Требует JWT. Можно удалить только свой пост.
+            Каскадное удаление: вместе с постом удаляются его interactions и post_tags.
+            Ответы (replies) получают ParentPostId = NULL (поведение Restrict → сначала удали ответы).
+            </remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.PostsRestApiController.ForceDelete(System.Int32)">
+            <summary>Принудительно удалить пост вместе со всеми ответами</summary>
+            <remarks>🔒 Требует JWT. Каскадно удаляет все дочерние посты.</remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.TagsApiController.GetAll">
+            <summary>Получить все теги, отсортированные по популярности</summary>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.TagsApiController.GetByName(System.String)">
+            <summary>Получить тег и список постов с ним</summary>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.TagsApiController.Create(GreenSwamp.Api.CreateTagRequest)">
+            <summary>Создать новый тег</summary>
+            <remarks>🔒 Требует JWT.</remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.TagsApiController.Delete(System.Int32)">
+            <summary>Удалить тег</summary>
+            <remarks>
+            🔒 Требует JWT.
+            При удалении тега все записи post_tags для него удаляются каскадно (CASCADE DELETE).
+            Сами посты остаются, только теряют этот тег.
+            </remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.InteractionsApiController.GetAll(System.Nullable{System.Int32},System.Nullable{System.Int32},System.String)">
+            <summary>Получить взаимодействия с фильтрами</summary>
+            <param name="postId">Фильтр по посту</param>
+            <param name="userId">Фильтр по пользователю</param>
+            <param name="type">Фильтр по типу: like / reribb / comment / rsvp</param>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.InteractionsApiController.Create(GreenSwamp.Api.CreateInteractionRequest)">
+            <summary>Добавить взаимодействие (лайк / reribb / comment / rsvp)</summary>
+            <remarks>
+            🔒 Требует JWT.
+            На один пост можно оставить только одно взаимодействие каждого типа.
+            Поле content обязательно только для type = "comment".
+            </remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.InteractionsApiController.Delete(System.Int32)">
+            <summary>Удалить своё взаимодействие (убрать лайк, etc.)</summary>
+            <remarks>
+            🔒 Требует JWT. Можно удалить только своё взаимодействие.
+            При удалении взаимодействие удаляется физически (не мягко).
+            </remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.UsersApiController.GetAll(System.Int32,System.Int32)">
+            <summary>Получить список всех пользователей</summary>
+            <param name="page">Номер страницы (с 1)</param>
+            <param name="pageSize">Записей на странице (макс. 100)</param>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.UsersApiController.GetById(System.Int32)">
+            <summary>Получить пользователя по ID</summary>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.UsersApiController.Create(GreenSwamp.Api.CreateUserRequest)">
+            <summary>Создать нового пользователя</summary>
+            <remarks>
+            Пароль хэшируется SHA-256 и сохраняется в таблице auth.
+            Этот же логин/пароль используется для получения JWT-токена.
+            </remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.UsersApiController.Update(System.Int32,GreenSwamp.Api.UpdateUserRequest)">
+            <summary>Изменить профиль пользователя</summary>
+            <remarks>🔒 Требует JWT. Можно изменить только свой профиль.</remarks>
+        </member>
+        <member name="M:GreenSwamp.Controllers.Api.UsersApiController.Delete(System.Int32)">
+            <summary>Удалить пользователя</summary>
+            <remarks>
+            🔒 Требует JWT. Можно удалить только свой аккаунт.
+            Все посты и взаимодействия удаляются каскадно (CASCADE DELETE).
+            </remarks>
+        </member>
+    </members>
+</doc>
